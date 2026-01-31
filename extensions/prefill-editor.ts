@@ -2,6 +2,9 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 
 export default function (pi: ExtensionAPI) {
+  // Queue of commands to execute after agent turn ends
+  let pendingCommand: { command: string; reason?: string } | null = null;
+
   // Tool to prefill the editor (user still needs to press Enter)
   pi.registerTool({
     name: "prefill_editor",
@@ -54,22 +57,43 @@ The command/message appears in the conversation as a user message.`,
     async execute(toolCallId, params, onUpdate, ctx, signal) {
       const { command, reason } = params;
 
-      // Send the command as a user message - it will be processed like typed input
-      // Using followUp delivery so it happens after the current response completes
-      pi.sendUserMessage(command, { deliverAs: "followUp" });
+      // Store command to be executed after agent turn ends
+      pendingCommand = { command, reason };
 
       const explanation = reason 
-        ? `Executing: ${command}\nReason: ${reason}`
-        : `Executing: ${command}`;
+        ? `Queued for execution: ${command}\nReason: ${reason}`
+        : `Queued for execution: ${command}`;
 
       return {
         content: [{ type: "text", text: explanation }],
         details: { 
           command,
           reason,
-          executed: true,
+          queued: true,
         },
       };
     },
+  });
+
+  // Execute pending command after agent turn completes
+  pi.on("agent_end", async (event, ctx) => {
+    if (pendingCommand) {
+      const { command } = pendingCommand;
+      pendingCommand = null;
+      
+      // Special handling for known commands via events
+      if (command === "/answer") {
+        // Trigger answer extension directly via event bus
+        setTimeout(() => {
+          pi.events.emit("trigger:answer", ctx);
+        }, 100);
+      } else {
+        // For other commands, notify user to press Enter
+        if (ctx.hasUI) {
+          ctx.ui.setEditorText(command);
+          ctx.ui.notify(`Press Enter to run: ${command}`, "info");
+        }
+      }
+    }
   });
 }
