@@ -34,9 +34,9 @@ See [SOUL.md](SOUL.md) for the full definition.
 | **auto-memory** | Automatically remember facts about environment, projects, and gotchas |
 | **think-before-building** | Explore the codebase and brainstorm before jumping to implementation |
 | **plan-before-coding** | For larger projects: check location, brainstorm, write detailed plans, create todos |
-| **thoughtful-questions** | Ask one meaningful question at a time, not a list |
+| **thoughtful-questions** | Ask meaningful questions, use `/answer` for multiple via `execute_command` |
 | **try-before-asking** | Try running commands instead of asking if tools are installed |
-| **reload-after-skill** | After creating a skill, prefill `/reload` for instant activation |
+| **reload-after-skill** | After creating a skill, auto-run `/reload` via `execute_command` |
 | **test-as-you-build** | Verify work as you go with lightweight tests |
 | **commit** | Create conventional commits with proper format |
 | **github** | Interact with GitHub using `gh` CLI |
@@ -49,7 +49,7 @@ See [SOUL.md](SOUL.md) for the full definition.
 |-----------|--------------|
 | **soul.ts** | Loads SOUL.md and prepends it to the system prompt |
 | **memory.ts** | Persistent memory system — global (`~/.pi/memory.md`) and per-project (`.pi/memory.md`) |
-| **prefill-editor.ts** | Tool to prefill the input editor (powers the reload-after-skill flow) |
+| **execute-command.ts** | Tool to self-invoke slash commands like `/answer`, `/reload` |
 | **answer.ts** | `/answer` command + `Ctrl+.` — extracts questions from last message into interactive Q&A UI |
 | **todos.ts** | `/todos` command — file-based todo management in `.pi/todos/` with locking, assignments, and TUI |
 
