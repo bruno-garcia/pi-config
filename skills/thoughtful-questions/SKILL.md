@@ -47,6 +47,14 @@ Good questions require **human judgment, preference, or domain knowledge**:
 - "Should I add comments?" (use judgment)
 - "Does this file exist?" (check yourself)
 
+## The /answer Tool
+
+If you do end up with multiple questions (rare, but happens during complex planning), the user can use:
+
+- **`/answer`** or **`Ctrl+.`** — Opens an interactive Q&A UI to answer all questions at once
+
+This extracts questions from your last message and lets the user answer them efficiently. But don't rely on this — still prefer one question at a time.
+
 ## Philosophy
 
 The user's time is valuable. Every question you ask is an interruption. Make it count.

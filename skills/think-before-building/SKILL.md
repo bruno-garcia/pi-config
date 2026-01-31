@@ -42,14 +42,14 @@ When the user brings up something to build or explore, don't rush to implementat
    - This makes you a **great engineer** — you come prepared with informed questions
 3. **Understand intent** — What are they really trying to achieve?
 4. **Explore briefly** — Surface a few angles, tradeoffs, or approaches
-5. **Ask informed questions** — Questions that couldn't be answered by just looking around
-6. **Then proceed** — Once aligned, move to implementation
+5. **Ask informed questions** — Questions that couldn't be answered by just looking around (one at a time!)
+6. **Then proceed** — Once aligned, move to implementation (or planning if it's bigger)
 
 ## Explore the Environment First
 
 Before asking questions, make yourself aware of your surroundings:
 
-```
+```bash
 # Get the lay of the land
 ls -la
 find . -type f -name "*.ts" | head -20  # or relevant extension
@@ -64,6 +64,16 @@ find . -type f -name "*.ts" | head -20  # or relevant extension
 ✅ Informed: "I see you're using Next.js with the app router — should this be a server component or client component?"
 
 **The rule:** If 30 seconds of snooping could answer the question, don't ask it.
+
+## Handling Multiple Questions
+
+Prefer **one question at a time** (see `thoughtful-questions` skill).
+
+But during complex brainstorming, you might surface several considerations. If you do, let the user know:
+
+> "I have a few things to clarify. You can answer inline, or use `/answer` (or `Ctrl+.`) to answer them all in one go."
+
+The `/answer` tool extracts questions from your message into an interactive Q&A UI.
 
 ## Example Flow
 
@@ -100,7 +110,15 @@ Then ask an **informed** question:
 
 This shows you did your homework and saves a round-trip.
 
-Then let the conversation flow naturally before implementing.
+## After Brainstorming
+
+Once aligned, decide on next steps:
+
+- **Small task** → Just do it
+- **Larger feature** → Use `plan-before-coding` skill → create plan + todos
+- **Needs more thought** → Continue the conversation
+
+If creating a plan, the todos system (`.pi/todos/`) will track tasks and enable sub-agent handoffs.
 
 ## Keep It Light
 

@@ -2,8 +2,8 @@
 name: plan-before-coding
 description: |
   Applies when starting a larger feature or project that involves significant coding.
-  Before implementing: check working directory, brainstorm, then write a detailed plan
-  with a task breakdown that could be handed off to sub-agents.
+  Before implementing: check working directory, brainstorm, write a detailed plan,
+  then create todos for each task. Todos enable parallel work and sub-agent handoffs.
 ---
 
 # Plan Before Coding
@@ -102,49 +102,98 @@ Describe the structure, components, or architecture.
 
 - Risk/question 1
 - Risk/question 2
-
----
-
-## Implementation Tasks
-
-Detailed breakdown of work. Each task should be:
-- **Self-contained** — could be done independently
-- **Specific** — clear what "done" looks like
-- **Contextual** — includes enough detail to hand off
-
-### Task 1: [Task Name]
-
-**Description:** What needs to be done  
-**Files:** List of files to create/modify  
-**Details:**
-- Step-by-step if needed
-- Important considerations
-- Acceptance criteria
-
-### Task 2: [Task Name]
-
-...
-
-### Task N: [Task Name]
-
-...
-
----
-
-## Notes
-
-Space for additional notes, links, references.
 ```
+
+### 4. Create Todos for Each Task
+
+After the plan is written, **create a todo for each implementation task** using the `todo` tool:
+
+```
+todo(action: "create", title: "Task 1: Setup project structure", tags: ["plan-name"], body: "...")
+todo(action: "create", title: "Task 2: Implement auth module", tags: ["plan-name"], body: "...")
+```
+
+**Todo body should include:**
+- Reference to the plan file: `Plan: .pi/plans/2026-01-31-auth-system.md`
+- What needs to be done
+- Files to create/modify
+- Acceptance criteria
+- Any dependencies on other tasks
+
+**Example todo body:**
+```markdown
+Plan: .pi/plans/2026-01-31-auth-system.md
+
+## Task
+Implement the JWT token validation middleware.
+
+## Files
+- src/middleware/auth.ts (create)
+- src/types/auth.ts (create)
+
+## Details
+- Use jsonwebtoken library
+- Extract token from Authorization header
+- Validate against JWT_SECRET env var
+- Attach decoded user to request object
+
+## Acceptance Criteria
+- [ ] Middleware rejects invalid tokens with 401
+- [ ] Middleware attaches user to req.user
+- [ ] Tests pass
+
+## Depends On
+- Task 1 (project setup) must be complete
+```
+
+### 5. Confirm and Ask About Execution
+
+After creating todos, ask the user:
+
+> "I've created the plan and X todos. How would you like to proceed?
+> 
+> 1. **Work through them together** — I'll work on each task, you review
+> 2. **Hand off to sub-agents** — I'll claim todos and you can spawn sub-agents to work on them
+> 3. **Just the plan for now** — We'll come back to implementation later"
+
+## Working with Todos
+
+### When to Claim Todos
+
+**Claim a todo** (`todo(action: "claim", id: "...")`) when:
+- You're about to start working on it yourself
+- User explicitly asks to hand off to sub-agents (claim it for that session)
+- You want to signal "this is in progress"
+
+**Don't claim** if:
+- Just creating the plan/todos
+- User hasn't decided on execution approach yet
+- Another session might work on it
+
+### During Implementation
+
+When working on a task:
+1. **Claim it first** — `todo(action: "claim", id: "TODO-xxxx")`
+2. **Append progress notes** — `todo(action: "append", id: "...", body: "Started implementation...")`
+3. **Close when done** — `todo(action: "update", id: "...", status: "closed")`
+
+### Listing Todos
+
+Use `/todos` to see the visual todo manager, or:
+- `todo(action: "list")` — see open and assigned todos
+- `todo(action: "list-all")` — include closed todos
+- `todo(action: "get", id: "...")` — see full details of a todo
 
 ## Why This Matters
 
 1. **Clarity** — Forces us to think before coding
-2. **Reference** — Can come back to the plan later
-3. **Sub-agents** — Task list can be handed to sub-agents for parallel work
-4. **History** — Plans in `.pi/plans/` create a project history
+2. **Trackable** — Todos persist and show progress
+3. **Parallel work** — Sub-agents can claim and work on different todos
+4. **Handoff ready** — Each todo has full context for independent execution
+5. **History** — Plans + todos create a project history
 
-## After Writing the Plan
+## Summary
 
-1. Confirm the plan looks good with the user
-2. Ask if they want to start with Task 1, or hand off tasks
-3. Begin implementation following the task list
+```
+Brainstorm → Plan (.pi/plans/) → Todos (.pi/todos/) → Claim → Work → Close
+```
