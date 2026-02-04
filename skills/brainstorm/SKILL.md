@@ -8,7 +8,7 @@ description: |
 
 # Brainstorm
 
-A structured brainstorming session for turning ideas into validated designs.
+A structured brainstorming session for turning ideas into validated designs and executed code.
 
 **Announce at start:** "Starting a brainstorming session. Let me investigate first, then we'll work through this step by step."
 
@@ -16,7 +16,7 @@ A structured brainstorming session for turning ideas into validated designs.
 
 ## ⚠️ MANDATORY: No Skipping Without Permission
 
-**You MUST follow all 7 phases.** Your judgment that something is "simple" or "straightforward" is NOT sufficient to skip steps.
+**You MUST follow all phases.** Your judgment that something is "simple" or "straightforward" is NOT sufficient to skip steps.
 
 The ONLY exception: The user explicitly says something like:
 - "Skip the plan, just implement it"
@@ -38,13 +38,13 @@ Phase 2: Clarify Requirements
     ↓
 Phase 3: Explore Approaches
     ↓
-Phase 4: Present & Validate Design (section by section)
+Phase 4: Present & Validate Design
     ↓
-Phase 5: Write Plan & Create Todos (plan-before-coding)
+Phase 5: Write Plan
     ↓
-Phase 6: Create Feature Branch
+Phase 6: Create Todos
     ↓
-Phase 7: Execute (scout → workers → reviewer)
+Phase 7: Execute with Subagents
 ```
 
 ---
@@ -56,7 +56,6 @@ If you're about to edit or create source files, STOP and check:
 1. ✅ Did you complete Phase 4 (design validation)?
 2. ✅ Did you write a plan to `.pi/plans/`?
 3. ✅ Did you create todos?
-4. ✅ Did you create a feature branch?
 
 If any answer is NO and the user didn't explicitly skip → you're cutting corners. Go back.
 
@@ -201,29 +200,138 @@ If they suggest changes:
 
 ---
 
-## Phase 5: Write Plan & Create Todos
+## Phase 5: Write Plan
 
 Once the design is validated:
 
 > "Design is solid. Let me write up the plan."
 
-Use the `plan-before-coding` skill to:
-1. Write the plan to `.pi/plans/YYYY-MM-DD-feature.md` (section by section with verification)
-2. Create bite-sized todos with implementation details
+Create: `.pi/plans/YYYY-MM-DD-[plan-name].md`
 
-This happens **in the main session** so you can provide feedback and iterate.
+### Section by Section with Verification
+
+Don't dump the whole plan at once. Write each section, verify, then continue.
+
+#### Section 1: Overview & Goals
+
+```markdown
+# [Plan Name]
+
+**Date:** YYYY-MM-DD
+**Status:** Draft
+**Directory:** /path/to/project
+
+## Overview
+
+[What we're building and why — 2-3 sentences]
+
+## Goals
+
+- Goal 1
+- Goal 2
+- Goal 3
+```
+
+Then ask:
+> "Here's the overview and goals. Does this capture what we're building?"
+
+#### Section 2: Approach & Key Decisions
+
+```markdown
+## Approach
+
+[High-level technical approach]
+
+### Key Decisions
+
+- Decision 1: [choice] — because [reason]
+- Decision 2: [choice] — because [reason]
+```
+
+Then ask:
+> "Here's the technical approach. Any concerns or changes?"
+
+#### Section 3: Architecture / Structure
+
+```markdown
+### Architecture
+
+[Structure, components, how pieces fit together]
+```
+
+Then ask:
+> "Here's the structure. Does this look right?"
+
+#### Section 4: Remaining Sections
+
+```markdown
+## Dependencies
+
+- Libraries needed
+- Tools required
+
+## Risks & Open Questions
+
+- Risk 1
+- Open question 1
+```
+
+Then ask:
+> "Anything to add before I create the todos?"
 
 ---
 
-## Phase 6: Create Feature Branch
+## Phase 6: Create Todos
 
-Before any implementation:
+After the plan is verified, break it into todos.
 
-```bash
-git checkout -b feature/[short-descriptive-name]
+### Make Todos Bite-Sized
+
+Each todo = **one focused action** (2-5 minutes).
+
+❌ Too big: "Implement authentication system"
+
+✅ Granular:
+- "Create `src/auth/types.ts` with User and Session types"
+- "Write failing test for `validateToken` function"  
+- "Implement `validateToken` to make test pass"
+- "Add token extraction from Authorization header"
+- "Commit: 'Add JWT token validation'"
+
+### Why Granular?
+
+- Easier to track progress
+- Clearer handoff to sub-agents
+- Smaller commits, easier to review/revert
+- Each todo completable in one focused session
+
+### Creating Todos
+
+```
+todo(action: "create", title: "Task 1: [description]", tags: ["plan-name"], body: "...")
 ```
 
-> "Created branch `feature/[name]`. Ready to execute."
+**Todo body includes:**
+```markdown
+Plan: .pi/plans/YYYY-MM-DD-plan-name.md
+
+## Task
+[What needs to be done]
+
+## Files
+- path/to/file.ts (create)
+- path/to/other.ts (modify)
+
+## Details
+[Specific implementation notes]
+
+## Acceptance Criteria
+- [ ] Criterion 1
+- [ ] Criterion 2
+
+## Depends On
+- Task X must be complete first (if applicable)
+```
 
 ---
 
@@ -272,8 +380,6 @@ When the reviewer returns with issues, **act on the important ones**:
 
 4. **Don't re-review minor fixes** — only run reviewer again if fixes were substantial
 
-This keeps the quality bar high without endless review cycles.
-
 ### Why Not Chains?
 
 - Chains fail silently or cryptically when any step errors
@@ -290,21 +396,50 @@ Even if todos are "independent" (different files), workers that commit to the sa
 - Worker B tries to commit → fails (repo state changed)
 - Worker C tries to commit → fails
 
-**The fix: Always run workers sequentially.** It's slightly slower but reliable:
-
-```typescript
-// Sequential - each completes before the next starts
-{ agent: "worker", task: "Implement TODO-xxxx. Plan: ..." }
-// verify, then:
-{ agent: "worker", task: "Implement TODO-yyyy. Plan: ..." }
-// verify, then:
-{ agent: "worker", task: "Implement TODO-zzzz. Plan: ..." }
-```
+**The fix: Always run workers sequentially.** It's slightly slower but reliable.
 
 **When parallel IS safe:**
 - Workers operate on completely separate git repos
 - Workers don't commit (rare — most workers should commit their work)
 - Read-only tasks (e.g., multiple scouts gathering info)
+
+### Alternative: Same Session
+
+If the user prefers hands-on work:
+
+> "Would you rather I work through these myself while you review?"
+
+Then work through todos sequentially:
+1. Claim the todo
+2. Implement
+3. Verify
+4. Close the todo
+5. Move to next
+
+---
+
+## Working with Todos During Implementation
+
+### Claiming
+```
+todo(action: "claim", id: "TODO-xxxx")
+```
+Claim when you start working. Don't claim if sub-agents will pick it up.
+
+### Progress Notes
+```
+todo(action: "append", id: "TODO-xxxx", body: "Implemented the validation logic...")
+```
+
+### Closing
+```
+todo(action: "update", id: "TODO-xxxx", status: "closed")
+```
+
+### Viewing
+- `/todos` — visual todo manager
+- `todo(action: "list")` — open and assigned
+- `todo(action: "get", id: "TODO-xxxx")` — full details
 
 ---
 
