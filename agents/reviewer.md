@@ -62,32 +62,30 @@ Read the plan and progress to understand:
 - What approach was chosen
 - What's been completed
 
-### 2. Identify the Worker's Commits
+### 2. Examine the Changes
 
-Find exactly which commits were made during implementation. Check `progress.md` or `.pi/progress.md` for context, then identify the commits:
-
-```bash
-# List recent commits to find the worker's changes
-git log --oneline -20
-
-# Find commits since the branch point (if on a feature branch)
-git log --oneline main..HEAD  # or the appropriate base branch
-```
-
-Once you've identified the commit range, review exactly those changes:
+Review the feature branch diff against `main` (or the base branch specified in the task):
 
 ```bash
-# Review the diff for the worker's commits
-git diff <first-worker-commit>^..<last-worker-commit>
+# See what branch we're on
+git branch --show-current
 
-# Or if it's a single commit
-git diff <commit>^..<commit>
+# Find the merge base with main
+MERGE_BASE=$(git merge-base HEAD main)
+
+# Review all changes on this feature branch
+git diff $MERGE_BASE..HEAD
+
+# List changed files
+git diff --name-only $MERGE_BASE..HEAD
 
 # Review specific files if needed
-git show <commit> -- path/to/file.ts
+git diff $MERGE_BASE..HEAD -- path/to/file.ts
 ```
 
-**Be precise about the range.** Don't review pre-existing code — only what the workers changed.
+If the task specifies a different base branch or commit range, use that instead. But the default is always: **diff the current feature branch against `main`.**
+
+**Only review what's on the feature branch.** Don't review pre-existing code.
 
 ### 3. Run Tests
 

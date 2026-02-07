@@ -44,7 +44,11 @@ Phase 5: Write Plan
     ↓
 Phase 6: Create Todos
     ↓
+Phase 6.5: Create Feature Branch
+    ↓
 Phase 7: Execute with Subagents
+    ↓
+Phase 8: Squash Merge into Main
 ```
 
 ---
@@ -335,6 +339,24 @@ Plan: .pi/plans/YYYY-MM-DD-plan-name.md
 
 ---
 
+## Phase 6.5: Create Feature Branch
+
+**Always create a feature branch before executing.** Never work directly on `main`.
+
+```bash
+# Create and switch to a feature branch
+git checkout -b feat/<short-descriptive-name>
+```
+
+Branch naming:
+- `feat/<name>` for features
+- `fix/<name>` for bug fixes
+- `refactor/<name>` for refactors
+
+Keep the name short and descriptive (e.g., `feat/jwt-auth`, `fix/null-response`, `refactor/date-utils`).
+
+---
+
 ## Phase 7: Execute with Subagents
 
 **Use simple, sequential subagent calls** — not chains. Chains are fragile; if any step fails, everything stops. Instead, call subagents one at a time with explicit context.
@@ -355,16 +377,9 @@ Plan: .pi/plans/YYYY-MM-DD-plan-name.md
 // Check result, then second todo
 { agent: "worker", task: "Implement TODO-yyyy. Plan: .pi/plans/YYYY-MM-DD-feature.md" }
 
-// After all todos complete, review the worker commits
-// Note the commit SHA before workers start, then pass the range to the reviewer
-{ agent: "reviewer", task: "Review the commits since <sha-before-workers>. Plan: .pi/plans/YYYY-MM-DD-feature.md" }
+// After all todos complete, review the feature branch against main
+{ agent: "reviewer", task: "Review the feature branch against main. Plan: .pi/plans/YYYY-MM-DD-feature.md" }
 ```
-
-**Important:** Before dispatching workers, capture the current HEAD so you can tell the reviewer exactly what to review:
-```bash
-git rev-parse HEAD  # Save this — pass it to the reviewer as the "before" point
-```
-Then tell the reviewer: `"Review commits since <that-sha>."`
 
 ### Handling Reviewer Findings
 
@@ -393,10 +408,8 @@ When the reviewer returns with issues, **act on the important ones**:
 
 ```typescript
 // This is NOT optional. Always end with:
-{ agent: "reviewer", task: "Review commits since <sha-before-workers>. Plan: .pi/plans/YYYY-MM-DD-feature.md" }
+{ agent: "reviewer", task: "Review the feature branch against main. Plan: .pi/plans/YYYY-MM-DD-feature.md" }
 ```
-
-Pass the commit SHA you captured before workers started so the reviewer knows exactly which commits to `git diff`.
 
 ### Why Not Chains?
 
@@ -440,8 +453,53 @@ Check:
 1. ✅ All worker todos are closed?
 2. ✅ **Reviewer has run?** ← If no, run it now
 3. ✅ Reviewer findings triaged and addressed?
+4. ✅ **Feature branch squash-merged into main?** ← If no, do Phase 8
 
-**Do NOT tell the user the work is done until all three are true.**
+**Do NOT tell the user the work is done until all four are true.**
+
+---
+
+## Phase 8: Squash Merge into Main
+
+After the reviewer is satisfied (APPROVED or all important findings addressed), squash-merge the feature branch back into `main`.
+
+### Write a Good Commit Message
+
+The squash commit message should summarize the **entire feature**, not list individual commits. Read through all the changes on the branch and write a clear, comprehensive message.
+
+```bash
+# Switch to main
+git checkout main
+
+# Squash merge the feature branch
+git merge --squash <branch-name>
+
+# Commit with a well-crafted message
+git commit -m "<type>(<scope>): <summary>" -m "<body>"
+```
+
+### Commit Message Guidelines
+
+- **Subject line:** Conventional Commits format, <= 72 chars, describes the whole feature
+- **Body:** Summarize what was built and why. Mention key design decisions. Keep it concise but informative — someone reading `git log` should understand the change without looking at the diff.
+
+Example:
+```
+feat(auth): add JWT token validation and session management
+
+Add complete authentication flow with JWT token validation,
+session persistence, and automatic token refresh. Tokens are
+validated against RS256 signatures with configurable expiry.
+Sessions are stored in Redis with a 24h TTL.
+```
+
+### Clean Up
+
+After the squash merge:
+```bash
+# Delete the feature branch
+git branch -d <branch-name>
+```
 
 ---
 
