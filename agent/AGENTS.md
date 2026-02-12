@@ -192,7 +192,7 @@ You can execute slash commands yourself using the `execute_command` tool:
 | Agent | Purpose | Model |
 |-------|---------|-------|
 | `scout` | Fast codebase reconnaissance | Haiku (fast, cheap) |
-| `worker` | Implements tasks from todos, commits, and closes the todo | Opus 4.6 (minimal thinking) |
+| `worker` | Implements tasks from todos, makes polished commits (always using the `commit` skill), and closes the todo | Opus 4.6 (minimal thinking) |
 | `reviewer` | Reviews code for quality/security | Opus 4.6 (medium thinking) |
 
 **Planning happens in the main session** (interactive, with user feedback) — not delegated to subagents.
@@ -209,8 +209,8 @@ You can execute slash commands yourself using the `execute_command` tool:
 ```typescript
 { chain: [
   { agent: "scout", task: "Gather context for [feature]. Key files: [list relevant files]" },
-  { agent: "worker", task: "Implement TODO-xxxx, commit your changes to the feature branch, and mark the todo as done. Plan: .pi/plans/YYYY-MM-DD-feature.md" },
-  { agent: "worker", task: "Implement TODO-yyyy, commit your changes to the feature branch, and mark the todo as done. Plan: .pi/plans/YYYY-MM-DD-feature.md" },
+  { agent: "worker", task: "Implement TODO-xxxx. Use the commit skill to write a polished, descriptive commit message. Mark the todo as done. Plan: .pi/plans/YYYY-MM-DD-feature.md" },
+  { agent: "worker", task: "Implement TODO-yyyy. Use the commit skill to write a polished, descriptive commit message. Mark the todo as done. Plan: .pi/plans/YYYY-MM-DD-feature.md" },
   { agent: "reviewer", task: "Review implementation. Plan: .pi/plans/YYYY-MM-DD-feature.md" }
 ]}
 ```
@@ -218,14 +218,14 @@ You can execute slash commands yourself using the `execute_command` tool:
 **Quick fix (no plan needed):**
 ```typescript
 { chain: [
-  { agent: "worker", task: "Fix [specific issue], commit your changes, and mark the todo as done" },
+  { agent: "worker", task: "Fix [specific issue]. Use the commit skill to write a polished, descriptive commit message. Mark the todo as done." },
   { agent: "reviewer" }
 ]}
 ```
 
-#### Merging
+#### Commits, Not Merges
 
-After the reviewer completes, **always pause for manual testing** before merging. Present the user with a summary of changes and ask them to confirm. Only after explicit confirmation, squash merge the feature branch into the base branch.
+**Do NOT squash merge or merge feature branches back into main.** Work stays on the feature branch with individual, polished commits. Each completed todo should result in a well-crafted commit using the `commit` skill — every single time, no exceptions. The commit message should be descriptive and tell the story of what changed and why.
 
 #### When NOT to Delegate
 
@@ -243,6 +243,8 @@ Skills provide specialized instructions for specific tasks. Load them when the c
 | When... | Load skill... |
 |---------|---------------|
 | User wants to brainstorm / build something significant | `brainstorm` |
-| Making git commits | `commit` |
+| Making git commits (always — every commit must be polished and descriptive) | `commit` |
 | Working with GitHub | `github` |
 | Asked to simplify/clean up/refactor code | `code-simplifier` |
+
+**The `commit` skill is mandatory for every single commit.** No quick `git commit -m "fix stuff"` — every commit gets the full treatment with a descriptive subject and body.

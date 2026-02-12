@@ -46,9 +46,7 @@ Phase 6: Create Todos
     ↓
 Phase 6.5: Create Feature Branch
     ↓
-Phase 7: Execute with Subagents
-    ↓
-Phase 8: Squash Merge into Main
+Phase 7: Execute with Subagents (each todo → polished commit)
 ```
 
 ---
@@ -371,11 +369,11 @@ Keep the name short and descriptive (e.g., `feat/jwt-auth`, `fix/null-response`,
 ### Example
 
 ```typescript
-// First todo
-{ agent: "worker", task: "Implement TODO-xxxx. Plan: .pi/plans/YYYY-MM-DD-feature.md" }
+// First todo — always use the commit skill for a polished, descriptive commit
+{ agent: "worker", task: "Implement TODO-xxxx. Use the commit skill to write a polished, descriptive commit message. Mark the todo as done. Plan: .pi/plans/YYYY-MM-DD-feature.md" }
 
 // Check result, then second todo
-{ agent: "worker", task: "Implement TODO-yyyy. Plan: .pi/plans/YYYY-MM-DD-feature.md" }
+{ agent: "worker", task: "Implement TODO-yyyy. Use the commit skill to write a polished, descriptive commit message. Mark the todo as done. Plan: .pi/plans/YYYY-MM-DD-feature.md" }
 
 // After all todos complete, review the feature branch against main
 { agent: "reviewer", task: "Review the feature branch against main. Plan: .pi/plans/YYYY-MM-DD-feature.md" }
@@ -397,7 +395,7 @@ When the reviewer returns with issues, **act on the important ones**:
 
 3. **Kick off workers to fix them:**
    ```typescript
-   { agent: "worker", task: "Fix TODO-xxxx (from review). Plan: .pi/plans/..." }
+   { agent: "worker", task: "Fix TODO-xxxx (from review). Use the commit skill to write a polished, descriptive commit message. Mark the todo as done. Plan: .pi/plans/..." }
    ```
 
 4. **Don't re-review minor fixes** — only run reviewer again if fixes were substantial
@@ -444,61 +442,45 @@ Then work through todos sequentially:
 1. Claim the todo
 2. Implement
 3. Verify
-4. Close the todo
-5. Move to next
+4. Commit using the `commit` skill (polished, descriptive message)
+5. Close the todo
+6. Move to next
 
 ### 🛑 STOP — Before Reporting Completion
 
 Check:
 1. ✅ All worker todos are closed?
-2. ✅ **Reviewer has run?** ← If no, run it now
-3. ✅ Reviewer findings triaged and addressed?
-4. ✅ **Feature branch squash-merged into main?** ← If no, do Phase 8
+2. ✅ **Every completed todo has a polished commit** (using the `commit` skill)?
+3. ✅ **Reviewer has run?** ← If no, run it now
+4. ✅ Reviewer findings triaged and addressed?
 
 **Do NOT tell the user the work is done until all four are true.**
 
+**Do NOT squash merge or merge the feature branch into main.** The feature branch stays as-is with its individual, well-crafted commits.
+
 ---
 
-## Phase 8: Squash Merge into Main
+## Commit Strategy
 
-After the reviewer is satisfied (APPROVED or all important findings addressed), squash-merge the feature branch back into `main`.
+**Do NOT squash merge or merge feature branches back into main.** Every completed todo gets its own polished, descriptive commit on the feature branch using the `commit` skill — always, no exceptions.
 
-### Write a Good Commit Message
+### What Makes a Good Commit
 
-The squash commit message should summarize the **entire feature**, not list individual commits. Read through all the changes on the branch and write a clear, comprehensive message.
+Each commit should tell the story of what changed and why. Load the `commit` skill every time. A reader of `git log` should be able to understand the change without looking at the diff.
 
-```bash
-# Switch to main
-git checkout main
-
-# Squash merge the feature branch
-git merge --squash <branch-name>
-
-# Commit with a well-crafted message
-git commit -m "<type>(<scope>): <summary>" -m "<body>"
-```
-
-### Commit Message Guidelines
-
-- **Subject line:** Conventional Commits format, <= 72 chars, describes the whole feature
-- **Body:** Summarize what was built and why. Mention key design decisions. Keep it concise but informative — someone reading `git log` should understand the change without looking at the diff.
+- **Subject line:** Conventional Commits format, <= 72 chars
+- **Body:** Describe what was done, why, and any key decisions. Be thorough and descriptive — not just "implement X" but explain the approach, the rationale, and notable details.
 
 Example:
 ```
-feat(auth): add JWT token validation and session management
+feat(auth): add JWT token validation with RS256 signature verification
 
-Add complete authentication flow with JWT token validation,
-session persistence, and automatic token refresh. Tokens are
-validated against RS256 signatures with configurable expiry.
-Sessions are stored in Redis with a 24h TTL.
-```
-
-### Clean Up
-
-After the squash merge:
-```bash
-# Delete the feature branch
-git branch -d <branch-name>
+Implement token validation against RS256 public keys with configurable
+expiry windows. Tokens are parsed and verified in a single pass to avoid
+double-deserialization. Invalid tokens return structured error responses
+with specific failure reasons (expired, malformed, bad signature) to aid
+client-side debugging. Expiry tolerance is set to 30s by default to
+account for clock skew between services.
 ```
 
 ---
