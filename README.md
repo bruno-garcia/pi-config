@@ -12,10 +12,10 @@ pi install npm:pi-subagents
 pi install npm:pi-notify
 
 # 2. Install this config
-pi install git:github.com/HazAT/pi-config
+pi install git:github.com/bruno-garcia/pi-config
 
 # 3. Symlink agents and skills for subagent discovery
-PI_CONFIG_DIR="$HOME/.pi/agent/git/github.com/HazAT/pi-config"
+PI_CONFIG_DIR="$HOME/.pi/agent/git/github.com/bruno-garcia/pi-config"
 mkdir -p ~/.pi/agent/agents ~/.pi/agent/skills
 for agent in "$PI_CONFIG_DIR"/agents/*.md; do ln -sf "$agent" ~/.pi/agent/agents/; done
 for skill in "$PI_CONFIG_DIR"/skills/*/; do ln -sf "$skill" ~/.pi/agent/skills/; done
@@ -37,7 +37,7 @@ This config depends on several pi packages that provide core functionality:
 ```bash
 pi install npm:pi-subagents
 pi install npm:pi-notify
-pi install git:github.com/HazAT/pi-config
+pi install git:github.com/bruno-garcia/pi-config
 ```
 
 ## Setup Options
@@ -50,12 +50,12 @@ Install as a pi package — best for using the config without modifying it.
 # 1. Install all required packages (see above)
 
 # 2. Install this config
-pi install git:github.com/HazAT/pi-config
+pi install git:github.com/bruno-garcia/pi-config
 
 # 3. Symlink agents and skills for subagent discovery
 #    (pi-subagents looks in ~/.pi/agent/ for these)
 
-PI_CONFIG_DIR="$HOME/.pi/agent/git/github.com/HazAT/pi-config"
+PI_CONFIG_DIR="$HOME/.pi/agent/git/github.com/bruno-garcia/pi-config"
 
 mkdir -p ~/.pi/agent/agents
 for agent in "$PI_CONFIG_DIR"/agents/*.md; do
@@ -76,7 +76,7 @@ Clone the repo locally — best for customizing or contributing.
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/HazAT/pi-config.git ~/Projects/pi-config
+git clone https://github.com/bruno-garcia/pi-config.git ~/Projects/pi-config
 cd ~/Projects/pi-config
 
 # 2. Install required packages

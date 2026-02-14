@@ -7,6 +7,11 @@
       "env": {
         "PLAYWRITER_AUTO_ENABLE": "1"
       }
+    },
+    "sentry": {
+      "url": "https://mcp.sentry.dev/mcp",
+      "auth": "oauth",
+      "lifecycle": "lazy"
     }
   }
 }
