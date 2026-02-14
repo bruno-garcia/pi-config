@@ -11,6 +11,7 @@ To replicate my exact setup:
 pi install npm:pi-subagents
 pi install npm:pi-notify
 pi install npm:pi-ghostty
+pi install npm:pi-co-authored-by
 
 # 2. Install this config
 pi install git:github.com/bruno-garcia/pi-config
@@ -33,6 +34,7 @@ This config depends on several pi packages that provide core functionality:
 | **npm:pi-subagents** | `subagent` tool for delegating tasks to specialized agents (scout, worker, reviewer) with chains and parallel execution |
 | **npm:pi-notify** | Desktop notifications when the agent finishes — supports Ghostty, iTerm2, WezTerm, Kitty, and Windows Terminal via OSC 777/99 |
 | **npm:pi-ghostty** | Ghostty terminal integration — dynamic title bar, progress indicators, and error states |
+| **npm:pi-co-authored-by** | Automatically appends Co-Authored-By and Generated-By git trailers to commit messages with the model name and pi version |
 
 ### Install All Packages
 
@@ -40,6 +42,7 @@ This config depends on several pi packages that provide core functionality:
 pi install npm:pi-subagents
 pi install npm:pi-notify
 pi install npm:pi-ghostty
+pi install npm:pi-co-authored-by
 pi install git:github.com/bruno-garcia/pi-config
 ```
 
@@ -54,6 +57,7 @@ Install as a pi package — best for using the config without modifying it.
 pi install npm:pi-subagents
 pi install npm:pi-notify
 pi install npm:pi-ghostty
+pi install npm:pi-co-authored-by
 
 # 2. Install this config
 pi install git:github.com/bruno-garcia/pi-config
@@ -89,6 +93,7 @@ cd ~/Projects/pi-config
 pi install npm:pi-subagents
 pi install npm:pi-notify
 pi install npm:pi-ghostty
+pi install npm:pi-co-authored-by
 
 # 3. Add to ~/.pi/agent/settings.json under "packages":
 #    "/Users/YOUR_USERNAME/Projects/pi-config"
@@ -342,5 +347,6 @@ Required packages:
 - [pi-subagents](https://github.com/nicobailon/pi-subagents) by Nico Bailon
 - [pi-notify](https://github.com/ferologics/pi-notify) by ferologics
 - [pi-ghostty](https://github.com/HazAT/pi-ghostty) by Daniel Griesser — Ghostty terminal integration
+- [pi-co-authored-by](https://github.com/bruno-garcia/pi-co-authored-by) — Co-Authored-By and Generated-By git trailers
 
 This config is a fork of [HazAT/pi-config](https://github.com/HazAT/pi-config).
