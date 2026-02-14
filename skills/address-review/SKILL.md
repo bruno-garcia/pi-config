@@ -103,9 +103,9 @@ After processing all comments, post a summary as a PR comment and also display i
 gh pr comment $ARGUMENTS --body "$(cat <<'EOF'
 ## Review comments addressed
 
-| # | Comment | Author | Verdict | Action |
-|---|---------|--------|---------|--------|
-| 1 | ... | ... | ... | ... |
+| No. | Comment | Author | Verdict | Action |
+|-----|---------|--------|---------|--------|
+| 1   | ...     | ...    | ...     | ...    |
 
 EOF
 )"
@@ -113,6 +113,7 @@ EOF
 
 ## Important rules
 
+- **Never use `#N` notation** (e.g. `#1`, `#2`) to refer to comment numbers — GitHub auto-links `#N` to issue/PR number N. Use plain numbers or "Comment 1", "Comment 2" instead.
 - **Process EVERY comment** - don't skip any, even bot comments.
 - **Always reply** - every comment gets a response explaining your assessment.
 - **Always react** - thumbs-up for accepted, thumbs-down for rejected.
