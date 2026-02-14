@@ -104,6 +104,7 @@ Work through requirements **one topic at a time**:
 2. **Scope** — What's in? What's explicitly out?
 3. **Constraints** — Performance, compatibility, timeline?
 4. **Success criteria** — How do we know it's done?
+5. **Visual testing** — Does this involve UI/web changes that should be visually tested? Ask explicitly: "Should we include a visual testing step for this?" Record the answer — it determines whether Phase 7.5 runs later.
 
 ### How to Ask
 
