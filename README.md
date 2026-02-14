@@ -341,6 +341,6 @@ Skill patterns and principles inspired by [obra/superpowers](https://github.com/
 Required packages:
 - [pi-subagents](https://github.com/nicobailon/pi-subagents) by Nico Bailon
 - [pi-notify](https://github.com/ferologics/pi-notify) by ferologics
-- [pi-ghostty](https://www.npmjs.com/package/pi-ghostty) — Ghostty terminal integration
+- [pi-ghostty](https://github.com/HazAT/pi-ghostty) by Daniel Griesser — Ghostty terminal integration
 
 This config is a fork of [HazAT/pi-config](https://github.com/HazAT/pi-config).
