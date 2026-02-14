@@ -10,6 +10,7 @@ To replicate my exact setup:
 # 1. Install required packages
 pi install npm:pi-subagents
 pi install npm:pi-notify
+pi install npm:pi-ghostty
 
 # 2. Install this config
 pi install git:github.com/bruno-garcia/pi-config
@@ -31,12 +32,14 @@ This config depends on several pi packages that provide core functionality:
 |---------|------------------|
 | **npm:pi-subagents** | `subagent` tool for delegating tasks to specialized agents (scout, worker, reviewer) with chains and parallel execution |
 | **npm:pi-notify** | Desktop notifications when the agent finishes — supports Ghostty, iTerm2, WezTerm, Kitty, and Windows Terminal via OSC 777/99 |
+| **npm:pi-ghostty** | Ghostty terminal integration — dynamic title bar, progress indicators, and error states |
 
 ### Install All Packages
 
 ```bash
 pi install npm:pi-subagents
 pi install npm:pi-notify
+pi install npm:pi-ghostty
 pi install git:github.com/bruno-garcia/pi-config
 ```
 
@@ -47,7 +50,10 @@ pi install git:github.com/bruno-garcia/pi-config
 Install as a pi package — best for using the config without modifying it.
 
 ```bash
-# 1. Install all required packages (see above)
+# 1. Install all required packages
+pi install npm:pi-subagents
+pi install npm:pi-notify
+pi install npm:pi-ghostty
 
 # 2. Install this config
 pi install git:github.com/bruno-garcia/pi-config
@@ -82,6 +88,7 @@ cd ~/Projects/pi-config
 # 2. Install required packages
 pi install npm:pi-subagents
 pi install npm:pi-notify
+pi install npm:pi-ghostty
 
 # 3. Add to ~/.pi/agent/settings.json under "packages":
 #    "/Users/YOUR_USERNAME/Projects/pi-config"
@@ -334,5 +341,6 @@ Skill patterns and principles inspired by [obra/superpowers](https://github.com/
 Required packages:
 - [pi-subagents](https://github.com/nicobailon/pi-subagents) by Nico Bailon
 - [pi-notify](https://github.com/ferologics/pi-notify) by ferologics
+- [pi-ghostty](https://www.npmjs.com/package/pi-ghostty) — Ghostty terminal integration
 
 This config is a fork of [HazAT/pi-config](https://github.com/HazAT/pi-config).
