@@ -9,8 +9,8 @@
       }
     },
     "sentry": {
-      "url": "https://mcp.sentry.dev/mcp",
-      "auth": "oauth",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.sentry.dev/mcp"],
       "lifecycle": "lazy"
     }
   }
