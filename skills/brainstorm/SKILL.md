@@ -504,7 +504,7 @@ Check:
 4. ✅ **Reviewer has run?** ← If no, run it now
 5. ✅ Reviewer findings triaged and addressed?
 
-**Do NOT tell the user the work is done until all four are true.**
+**Do NOT tell the user the work is done until all five are true.**
 
 **Do NOT squash merge or merge the feature branch into main.** The feature branch stays as-is with its individual, well-crafted commits.
 

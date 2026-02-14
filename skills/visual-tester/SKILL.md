@@ -13,39 +13,25 @@ This is not a formal test suite — it's "let me look at this and check if it's 
 
 ## Setup
 
-### 1. Get Playwriter docs
+You interact with the browser via the Playwriter MCP `execute` tool. Each call runs a Playwright code snippet with `page`, `context`, `state`, and utility functions in scope.
 
-Always start by fetching the latest Playwriter API docs:
+### 1. Create a page and navigate
 
-```
-mcp(tool: "playwriter", args: '{"command": "skill"}')
-```
+**Always create your own page** — never use the default `page` variable:
 
-Read the output carefully — it's the source of truth for available APIs.
-
-### 2. Start a session
-
-```
-mcp(tool: "playwriter", args: '{"command": "session new"}')
+```js
+state.myPage = await context.newPage(); await state.myPage.goto("http://localhost:3000")
 ```
 
-This returns a session ID. Use it for all subsequent commands.
+Store it in `state.myPage` so it persists across calls.
 
-### 3. Create a page and navigate
+### 2. Verify connection with a labeled screenshot
 
-```
-mcp(tool: "playwriter", args: '{"sessionId": "<id>", "code": "state.page = await context.newPage(); await state.page.goto(\"http://localhost:3000\");"}')
-```
-
-**Always create your own page** via `state.page = await context.newPage()` — don't reuse existing pages.
-
-### 4. Verify connection with a labeled screenshot
-
-```
-mcp(tool: "playwriter", args: '{"sessionId": "<id>", "code": "return await screenshotWithAccessibilityLabels({ page: state.page });"}')
+```js
+await screenshotWithAccessibilityLabels({ page: state.myPage })
 ```
 
-If you get an image back, you're connected. If not, troubleshoot before continuing.
+If you get an image back with labeled elements, you're connected. If you get a connection error, use the Playwriter `reset` tool and retry.
 
 ---
 
@@ -56,27 +42,27 @@ If you get an image back, you're connected. If not, troubleshoot before continui
 Use `screenshotWithAccessibilityLabels` for most screenshots. It overlays Vimium-style labels on interactive elements and returns both an image and an accessibility snapshot:
 
 ```js
-return await screenshotWithAccessibilityLabels({ page: state.page });
+await screenshotWithAccessibilityLabels({ page: state.myPage })
 ```
 
-This is your main way to "see" the page. The labels let you reference specific elements precisely.
+This is your main way to "see" the page. The labels let you reference specific elements precisely. The image and accessibility snapshot are automatically included in the response.
 
 ### Plain screenshots
 
-For clean screenshots without labels (e.g., for a report or when labels clutter the view):
+For clean screenshots without labels (e.g., when labels clutter the view):
 
 ```js
-await state.page.screenshot({ path: '/tmp/screenshot.png', scale: 'css' });
+await state.myPage.screenshot({ path: '/tmp/screenshot.png', scale: 'css' })
 ```
 
-**Always use `scale: 'css'`** for consistent sizing.
+**Always use `scale: 'css'`** for consistent sizing on high-DPI displays.
 
 ### Accessibility snapshot (text-only)
 
 For text-heavy pages where you need to read content without a screenshot:
 
 ```js
-return await accessibilitySnapshot({ page: state.page });
+await accessibilitySnapshot({ page: state.myPage })
 ```
 
 ---
@@ -134,8 +120,7 @@ Test at these breakpoints by changing the viewport:
 | Wide | 1920 | 1080 |
 
 ```js
-await state.page.setViewportSize({ width: 375, height: 812 });
-return await screenshotWithAccessibilityLabels({ page: state.page });
+await state.myPage.setViewportSize({ width: 375, height: 812 }); await screenshotWithAccessibilityLabels({ page: state.myPage })
 ```
 
 Take a labeled screenshot at each size. Look for:
@@ -156,8 +141,7 @@ You don't always need all four breakpoints. Use judgment — if it's a simple co
 Click interactive elements and verify they respond:
 
 ```js
-await state.page.click('[data-testid="submit-btn"]');
-return await screenshotWithAccessibilityLabels({ page: state.page });
+await state.myPage.click('[data-testid="submit-btn"]'); await screenshotWithAccessibilityLabels({ page: state.myPage })
 ```
 
 **Always screenshot after actions** to verify the result.
@@ -166,23 +150,18 @@ return await screenshotWithAccessibilityLabels({ page: state.page });
 Fill inputs and verify they accept values:
 
 ```js
-await state.page.fill('input[name="email"]', 'test@example.com');
-await state.page.fill('input[name="password"]', 'password123');
-await state.page.click('button[type="submit"]');
-return await screenshotWithAccessibilityLabels({ page: state.page });
+await state.myPage.fill('input[name="email"]', 'test@example.com'); await state.myPage.fill('input[name="password"]', 'password123'); await state.myPage.click('button[type="submit"]'); await screenshotWithAccessibilityLabels({ page: state.myPage })
 ```
 
 Check: validation messages styled correctly? Success/error states clear?
 
 ### Hover & Focus States
 ```js
-await state.page.hover('button.primary');
-return await screenshotWithAccessibilityLabels({ page: state.page });
+await state.myPage.hover('button.primary'); await screenshotWithAccessibilityLabels({ page: state.myPage })
 ```
 
 ```js
-await state.page.focus('input[name="email"]');
-return await screenshotWithAccessibilityLabels({ page: state.page });
+await state.myPage.focus('input[name="email"]'); await screenshotWithAccessibilityLabels({ page: state.myPage })
 ```
 
 ### Navigation
@@ -196,11 +175,7 @@ Click through different routes/pages. Verify:
 If something should animate, use video recording:
 
 ```js
-await startRecording(state.page);
-await state.page.click('.accordion-trigger');
-await new Promise(r => setTimeout(r, 1000));
-const video = await stopRecording(state.page);
-return video;
+await startRecording({ page: state.myPage, outputPath: '/tmp/animation.mp4' }); await state.myPage.click('.accordion-trigger'); await new Promise(r => setTimeout(r, 1000)); const result = await stopRecording({ page: state.myPage }); console.log('Recorded:', result.path, result.duration + 'ms')
 ```
 
 ---
@@ -210,13 +185,11 @@ return video;
 Toggle color scheme emulation:
 
 ```js
-await state.page.emulateMedia({ colorScheme: 'dark' });
-return await screenshotWithAccessibilityLabels({ page: state.page });
+await state.myPage.emulateMedia({ colorScheme: 'dark' }); await screenshotWithAccessibilityLabels({ page: state.myPage })
 ```
 
 ```js
-await state.page.emulateMedia({ colorScheme: 'light' });
-return await screenshotWithAccessibilityLabels({ page: state.page });
+await state.myPage.emulateMedia({ colorScheme: 'light' }); await screenshotWithAccessibilityLabels({ page: state.myPage })
 ```
 
 Check:
@@ -232,10 +205,10 @@ Check:
 When you spot something off, inspect the styles:
 
 ```js
-return await getStylesForLocator(state.page.locator('.suspect-element'));
+const cdp = await getCDPSession({ page: state.myPage }); const styles = await getStylesForLocator({ locator: state.myPage.locator('.suspect-element'), cdp }); console.log(formatStylesAsText(styles))
 ```
 
-This helps confirm whether an issue is a CSS problem vs. content problem.
+This helps confirm whether an issue is a CSS problem vs. content problem. Fetch the full styles API docs with the Playwriter `get_styles_api` resource if needed.
 
 ---
 
@@ -302,5 +275,5 @@ Brief overall impression. Is this ready to ship? Major concerns?
 - **Test the happy path first.** Make sure the basic flow works before testing edge cases.
 - **Check the console.** Look for JS errors that might explain visual issues:
   ```js
-  state.page.on('console', msg => console.log(msg.type(), msg.text()));
+  state.myPage.on('console', msg => console.log(msg.type(), msg.text()))
   ```
