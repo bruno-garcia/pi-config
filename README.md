@@ -12,6 +12,7 @@ pi install npm:pi-subagents
 pi install npm:pi-notify
 pi install npm:pi-ghostty
 pi install npm:pi-co-authored-by
+pi install npm:pi-pr-status
 
 # 2. Install this config
 pi install git:github.com/bruno-garcia/pi-config
@@ -35,6 +36,7 @@ This config depends on several pi packages that provide core functionality:
 | **npm:pi-notify** | Desktop notifications when the agent finishes — supports Ghostty, iTerm2, WezTerm, Kitty, and Windows Terminal via OSC 777/99 |
 | **npm:pi-ghostty** | Ghostty terminal integration — dynamic title bar, progress indicators, and error states |
 | **npm:pi-co-authored-by** | Automatically appends Co-Authored-By and Generated-By git trailers to commit messages with the model name and pi version |
+| **npm:pi-pr-status** | Shows the current PR link, CI check status, and unresolved review comments in the footer status bar |
 
 ### Install All Packages
 
@@ -43,6 +45,7 @@ pi install npm:pi-subagents
 pi install npm:pi-notify
 pi install npm:pi-ghostty
 pi install npm:pi-co-authored-by
+pi install npm:pi-pr-status
 pi install git:github.com/bruno-garcia/pi-config
 ```
 
@@ -58,6 +61,7 @@ pi install npm:pi-subagents
 pi install npm:pi-notify
 pi install npm:pi-ghostty
 pi install npm:pi-co-authored-by
+pi install npm:pi-pr-status
 
 # 2. Install this config
 pi install git:github.com/bruno-garcia/pi-config
@@ -94,6 +98,7 @@ pi install npm:pi-subagents
 pi install npm:pi-notify
 pi install npm:pi-ghostty
 pi install npm:pi-co-authored-by
+pi install npm:pi-pr-status
 
 # 3. Add to ~/.pi/agent/settings.json under "packages":
 #    "/Users/YOUR_USERNAME/Projects/pi-config"
@@ -348,5 +353,6 @@ Required packages:
 - [pi-notify](https://github.com/ferologics/pi-notify) by ferologics
 - [pi-ghostty](https://github.com/HazAT/pi-ghostty) by Daniel Griesser — Ghostty terminal integration
 - [pi-co-authored-by](https://github.com/bruno-garcia/pi-co-authored-by) — Co-Authored-By and Generated-By git trailers
+- [pi-pr-status](https://github.com/bruno-garcia/pi-pr-status) — PR link, CI status, and unresolved review comments in the footer
 
 This config is a fork of [HazAT/pi-config](https://github.com/HazAT/pi-config).
