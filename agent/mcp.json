@@ -12,6 +12,11 @@
       "command": "npx",
       "args": ["-y", "mcp-remote", "https://mcp.sentry.dev/mcp"],
       "lifecycle": "lazy"
+    },
+    "vercel": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.vercel.com"],
+      "lifecycle": "lazy"
     }
   }
 }
