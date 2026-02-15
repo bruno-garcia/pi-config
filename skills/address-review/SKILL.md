@@ -26,10 +26,17 @@ Bot reviewers (Copilot, Sentry, Codex, etc.) take time to post their comments af
    ```bash
    gh pr view $PR --json commits --jq '.commits[-1].committedDate'
    ```
-2. If less than 5 minutes have passed since that commit, wait and re-check for new comments periodically (every 30–60 seconds).
-3. Once 5 minutes have passed since the last commit with no new comments arriving, proceed to the next step.
+2. **Wait for the Sentry status check to complete.** Sentry runs as a check/status on the PR and posts review comments only after it finishes. Poll the check status:
+   ```bash
+   gh pr checks $PR --json name,state,status | jq '[.[] | select(.name | test("sentry"; "i"))]'
+   ```
+   - If a Sentry check exists and its status is not yet `completed` (or state is `pending`/`queued`/`in_progress`), wait and re-poll every 30–60 seconds.
+   - Continue waiting until the Sentry check reaches a terminal state (`completed`, `success`, `failure`, etc.) or until 10 minutes have elapsed (timeout safeguard).
+   - If no Sentry check is found at all, fall back to the time-based wait below.
+3. If less than 5 minutes have passed since the last commit, also wait and re-check for new comments periodically (every 30–60 seconds).
+4. Once **both** the Sentry check has completed (or timed out) **and** 5 minutes have passed since the last commit with no new comments arriving, proceed to the next step.
 
-This ensures you don't start processing before all reviewers have had a chance to comment.
+This ensures you don't start processing before Sentry and other reviewers have had a chance to comment.
 
 ## Step 2: Gather context
 
