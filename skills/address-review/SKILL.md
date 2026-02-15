@@ -65,15 +65,16 @@ For **each** comment, do ALL of the following:
 
 ### A. If the comment is valid and actionable:
 1. **Make the code change** in the local working tree.
-2. **React with thumbs-up** (+1) to acknowledge:
+2. **Consider test coverage** — if the issue is high severity (e.g. bug, logic error, data loss, security), ask yourself: *why didn't we catch this with a test?* Check whether existing tests cover this code path. If there's a genuine gap in test coverage, add a test to prevent regression. Only add tests when they are truly relevant and fill a missing coverage gap — don't add tests for trivial style fixes or obvious non-regression issues.
+3. **React with thumbs-up** (+1) to acknowledge:
    ```bash
    gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions -f content='+1'
    ```
-3. **Reply** explaining what you changed:
+4. **Reply** explaining what you changed (and mention any test added):
    ```bash
    gh api repos/{owner}/{repo}/pulls/$PR/comments -f body="..." -F in_reply_to={comment_id}
    ```
-4. **Resolve the thread**:
+5. **Resolve the thread**:
    ```bash
    gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "THREAD_NODE_ID"}) { thread { isResolved } } }'
    ```
