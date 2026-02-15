@@ -1,6 +1,6 @@
 ---
 name: start-fresh
-description: Reset the workspace for a new task. Checks out main, pulls latest, cleans up stale branches, reviews open todos, and compacts context. Use when starting a new session or switching to a different task.
+description: Reset the workspace for a new task. Checks out main, pulls latest, cleans up stale branches, and reviews open todos. Use when starting a new session or switching to a different task.
 ---
 
 # Start Fresh
@@ -49,6 +49,6 @@ todo({ action: "list" })
 
 Briefly summarize any open items so the user knows what's pending.
 
-## 5. Compact context
+## 5. Done
 
-Run `/compact` to reset the conversation context for a clean start.
+Tell the user the workspace is ready for a new task.
