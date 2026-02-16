@@ -262,37 +262,6 @@ Extensions add functionality to pi — commands, tools, shortcuts, and hooks.
 | **todos.ts** | `/todos` command + `todo` tool — file-based todo management in `.pi/todos/` with locking, assignments, and TUI |
 | **review.ts** | `/review` command — code review for PRs, branches, commits, or uncommitted changes |
 | **tmux-status.ts** | Shows running pi tmux sessions in the footer status bar with `ptmux` attach commands |
-| **context-filter** | `.gitignore`-style control over which context files and skills appear in the system prompt |
-
-#### Context Filter
-
-The **context-filter** extension reads a `.pi/.context` file to control which `AGENTS.md` / `CLAUDE.md` files and skills are included in the system prompt. It also supports adding custom context files.
-
-```bash
-# .pi/.context
-
-# Exclude the global AGENTS.md
-!~/.pi/agent/AGENTS.md
-
-# Exclude all ancestor AGENTS.md files
-!**/AGENTS.md
-
-# Exclude a specific skill
-!**/skills/brainstorm/SKILL.md
-
-# Include a custom context file
-+.pi/MYCONTEXT.md
-```
-
-- `!pattern` — Exclude matching files (supports [picomatch](https://github.com/micromatch/picomatch) globs)
-- `+path` — Include an arbitrary file into the system prompt (resolved relative to project root)
-- `#` — Comments
-- Blank lines are ignored
-
-The `.context` file is read from `.pi/.context` in the current working directory only (no ancestor walking). Use `/reload` to pick up changes.
-
-See the [context-filter README](extensions/context-filter/README.md) for more details and examples.
-
 #### Commands
 
 | Command | Shortcut | Description |
