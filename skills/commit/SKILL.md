@@ -1,14 +1,32 @@
 ---
 name: commit
-description: "Read this skill before making git commits"
+description: "Read this skill before making git commits, rebases, merges, cherry-picks, or any git operation"
 license: From mitsuhiko/agent-stuff
 ---
 
-Create a git commit for the current changes using Conventional Commits format with a **polished, highly descriptive** message.
+## CRITICAL — Never open an interactive editor
 
-## Format
+**This applies to ALL git operations, not just commits.**
 
-`<type>(<scope>): <summary>`
+Any git command that opens an editor will hang the agent forever. Always prevent this:
+
+| Command | Safe version |
+|---------|-------------|
+| `git commit` | `git commit -m "message"` |
+| `git rebase --continue` | `GIT_EDITOR=true git rebase --continue` |
+| `git merge --continue` | `GIT_EDITOR=true git merge --continue` |
+| `git cherry-pick --continue` | `GIT_EDITOR=true git cherry-pick --continue` |
+| `git revert --continue` | `GIT_EDITOR=true git revert --continue` |
+| `git rebase -i` | **Never use** — use non-interactive rebase only |
+| Any `--continue` after conflict resolution | Always prefix with `GIT_EDITOR=true` |
+
+**Rule: Every `--continue` gets `GIT_EDITOR=true`. No exceptions.**
+
+---
+
+## Commit format
+
+Create commits using Conventional Commits: `<type>(<scope>): <summary>`
 
 - `type` REQUIRED. Use `feat` for new features, `fix` for bug fixes. Other common types: `docs`, `refactor`, `chore`, `test`, `perf`.
 - `scope` OPTIONAL. Short noun in parentheses for the affected area (e.g., `api`, `parser`, `ui`).
