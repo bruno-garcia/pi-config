@@ -17,8 +17,5 @@
     "themes": [
       "themes"
     ]
-  },
-  "dependencies": {
-    "picomatch": "^4.0.3"
   }
 }
