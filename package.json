@@ -2,12 +2,23 @@
   "name": "pi-config",
   "version": "1.0.0",
   "description": "Personal pi coding agent configuration - skills and extensions",
-  "keywords": ["pi-package"],
+  "keywords": [
+    "pi-package"
+  ],
   "author": "bruno-garcia",
   "license": "MIT",
   "pi": {
-    "extensions": ["extensions"],
-    "skills": ["skills"],
-    "themes": ["themes"]
+    "extensions": [
+      "extensions"
+    ],
+    "skills": [
+      "skills"
+    ],
+    "themes": [
+      "themes"
+    ]
+  },
+  "dependencies": {
+    "picomatch": "^4.0.3"
   }
 }
