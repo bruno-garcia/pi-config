@@ -296,7 +296,9 @@ export default function (pi: ExtensionAPI) {
 		pr: PrInfo | undefined,
 		ui: { setStatus: (key: string, value: string | undefined) => void },
 	) {
-		lastPr = pr;
+		// Only update lastPr when we get a definitive answer (found or branch changed).
+		// undefined from a transient failure should not wipe the status bar.
+		if (pr !== undefined) lastPr = pr;
 		ui.setStatus(STATUS_KEY, lastPr ? formatStatus(lastPr, iterateLabel()) : undefined);
 	}
 
@@ -308,18 +310,30 @@ export default function (pi: ExtensionAPI) {
 		}
 	}
 
+	function ensureTimer() {
+		if (timer) return;
+		timer = setInterval(() => {
+			if (latestCtx) update(latestCtx.cwd, latestCtx.ui);
+		}, POLL_INTERVAL);
+	}
+
+	function clearStatus(ui: { setStatus: (key: string, value: string | undefined) => void }) {
+		lastPr = undefined;
+		ui.setStatus(STATUS_KEY, undefined);
+	}
+
 	function update(cwd: string, ui: { setStatus: (key: string, value: string | undefined) => void }) {
 		// If a PR is pinned by URL, use that
 		if (pinnedPr) {
 			const pr = getPrByNumber(pinnedPr.repo, pinnedPr.number);
-			showStatus(pr, ui);
+			showStatus(pr, ui); // transient failure keeps last known status
 
 			// If the branch now has its own open PR, drop the pin
 			if (pr) {
 				const branch = getBranch(cwd);
 				if (branch && branch !== "HEAD" && branch !== lastBranch) lastBranch = branch;
 				if (branch && branch !== "HEAD") {
-					if (!cachedRepo) cachedRepo = getRepoInfo(cwd);
+					cachedRepo = getRepoInfo(cwd);
 					const branchPr = getPrForBranch(cwd, cachedRepo);
 					if (branchPr && branchPr.state === "OPEN") {
 						pinnedPr = null;
@@ -333,10 +347,12 @@ export default function (pi: ExtensionAPI) {
 		const branch = getBranch(cwd);
 		if (branch !== lastBranch) {
 			lastBranch = branch;
-			lastPr = undefined;
+			// Branch actually changed — clear stale PR and repo cache
+			clearStatus(ui);
+			cachedRepo = undefined;
 		}
 		if (!branch || branch === "HEAD") {
-			showStatus(undefined, ui);
+			clearStatus(ui);
 			return;
 		}
 
@@ -406,12 +422,10 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
 		latestCtx = ctx;
 		update(ctx.cwd, ctx.ui);
-		timer = setInterval(() => {
-			if (latestCtx) update(latestCtx.cwd, latestCtx.ui);
-		}, POLL_INTERVAL);
+		ensureTimer();
 	});
 
-	// Reset on session switch
+	// Reset on session switch — also ensure timer is running
 	pi.on("session_switch", async (_event, ctx) => {
 		lastBranch = undefined;
 		lastPr = undefined;
@@ -420,6 +434,7 @@ export default function (pi: ExtensionAPI) {
 		iterationCount = 0;
 		latestCtx = ctx;
 		update(ctx.cwd, ctx.ui);
+		ensureTimer();
 	});
 
 	// Cleanup
