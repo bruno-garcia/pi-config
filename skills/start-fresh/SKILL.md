@@ -49,6 +49,21 @@ todo({ action: "list" })
 
 Briefly summarize any open items so the user knows what's pending.
 
-## 5. Done
+## 5. Clean up tmux sessions
+
+Kill any tmux sessions on the pi socket:
+
+```bash
+SOCKET="${TMPDIR:-/tmp}/pi-tmux-sockets/pi.sock"
+if [ -S "$SOCKET" ]; then
+  tmux -S "$SOCKET" list-sessions -F '#{session_name}' 2>/dev/null | while read -r s; do
+    tmux -S "$SOCKET" kill-session -t "$s" 2>/dev/null
+  done
+fi
+```
+
+Report how many sessions were killed. If none, say so.
+
+## 6. Done
 
 Tell the user the workspace is ready for a new task.
