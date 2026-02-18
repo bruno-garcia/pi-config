@@ -3,7 +3,7 @@
  *
  * Status bar (always on):
  *   Shows PR number, CI checks, unresolved review threads, and URL.
- *   Detects PRs from the current branch or GitHub PR URLs in user input.
+ *   Detects PRs from the current branch. Use /pr-iterate pin <url> for cross-branch PRs.
  *
  * Auto-iteration (toggleable, on by default):
  *   After the agent pushes code (git push / gh pr create), automatically:
@@ -19,6 +19,8 @@
  *   /pr-iterate run      Trigger one iteration manually
  *   /pr-iterate reset    Reset the iteration counter
  *   /pr-iterate status   Show current state
+ *   /pr-iterate pin <url> Pin a specific PR by URL
+ *   /pr-iterate unpin   Unpin and use branch detection
  *
  * Replaces: pi-pr-status (npm package) — all status bar features are included.
  */
@@ -169,9 +171,15 @@ function getPrForBranch(cwd: string, repo?: RepoInfo): PrInfo | undefined {
 			timeout: 10_000,
 			stdio: ["pipe", "pipe", "pipe"],
 		}).trim();
-		if (!json) return undefined;
+		if (!json) {
+			debugLog("getPrForBranch: empty response from gh pr view");
+			return undefined;
+		}
 		const pr = JSON.parse(json);
-		if (!pr.number || !pr.url) return undefined;
+		if (!pr.number || !pr.url) {
+			debugLog(`getPrForBranch: missing number/url in response: ${JSON.stringify(pr).slice(0, 200)}`);
+			return undefined;
+		}
 
 		const checks = Array.isArray(pr.statusCheckRollup)
 			? parseChecks(pr.statusCheckRollup)
@@ -181,6 +189,7 @@ function getPrForBranch(cwd: string, repo?: RepoInfo): PrInfo | undefined {
 			? getUnresolvedThreadCount(repo.owner, repo.name, pr.number)
 			: 0;
 
+		debugLog(`getPrForBranch: found PR #${pr.number} (${pr.state})`);
 		return {
 			number: pr.number,
 			title: pr.title,
@@ -189,7 +198,8 @@ function getPrForBranch(cwd: string, repo?: RepoInfo): PrInfo | undefined {
 			checks,
 			unresolvedThreads,
 		};
-	} catch {
+	} catch (e) {
+		debugLog(`getPrForBranch: error: ${e instanceof Error ? e.message : String(e)}`);
 		return undefined;
 	}
 }
@@ -270,6 +280,14 @@ If there are **no unresolved review comments** → report "✅ CI passed, no rev
 const STATUS_KEY = "pr-status";
 const POLL_INTERVAL = 30_000;
 const MAX_ITERATIONS = 10;
+const DEBUG_LOG_PATH = "/tmp/pr-iterate-debug.log";
+
+function debugLog(msg: string) {
+	try {
+		const fs = require("node:fs");
+		fs.appendFileSync(DEBUG_LOG_PATH, `[${new Date().toISOString()}] ${msg}\n`);
+	} catch {}
+}
 
 export default function (pi: ExtensionAPI) {
 	// ── Status bar state ──
@@ -323,6 +341,7 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	function update(cwd: string, ui: { setStatus: (key: string, value: string | undefined) => void }) {
+		debugLog(`update: cwd=${cwd} lastBranch=${lastBranch} pinnedPr=${JSON.stringify(pinnedPr)} lastPr=#${lastPr?.number ?? "none"}`);
 		// If a PR is pinned by URL, use that
 		if (pinnedPr) {
 			const pr = getPrByNumber(pinnedPr.repo, pinnedPr.number);
@@ -352,9 +371,11 @@ export default function (pi: ExtensionAPI) {
 			cachedRepo = undefined;
 		}
 		if (!branch || branch === "HEAD") {
+			debugLog(`update: no usable branch (${branch}), clearing`);
 			clearStatus(ui);
 			return;
 		}
+		debugLog(`update: branch=${branch}`);
 
 		if (!cachedRepo) cachedRepo = getRepoInfo(cwd);
 		showStatus(getPrForBranch(cwd, cachedRepo), ui);
@@ -404,18 +425,15 @@ export default function (pi: ExtensionAPI) {
 		setTimeout(() => triggerIteration(ctx), 500);
 	});
 
-	// Detect PR URLs in user input
+	// Update context from user input (no auto-pinning — use /pr-iterate pin <url>)
 	pi.on("input", async (event, ctx) => {
 		if (event.source === "extension") return { action: "continue" as const };
 		latestCtx = ctx;
-		tryPinFromUrl(event.text, ctx);
 		return { action: "continue" as const };
 	});
 
-	// Also check expanded text
-	pi.on("before_agent_start", async (event, ctx) => {
+	pi.on("before_agent_start", async (_event, ctx) => {
 		latestCtx = ctx;
-		tryPinFromUrl(event.prompt, ctx);
 	});
 
 	// Start polling
@@ -456,6 +474,8 @@ export default function (pi: ExtensionAPI) {
 				{ value: "run", label: "run — Trigger one iteration now" },
 				{ value: "reset", label: "reset — Reset iteration counter" },
 				{ value: "status", label: "status — Show current state" },
+				{ value: "pin", label: "pin <url> — Pin a specific PR by URL" },
+				{ value: "unpin", label: "unpin — Unpin and use branch detection" },
 			];
 			const filtered = options.filter((o) => o.value.startsWith(prefix));
 			return filtered.length > 0 ? filtered : null;
@@ -488,6 +508,22 @@ export default function (pi: ExtensionAPI) {
 					`Auto-iterate: ${autoIterate ? "ON" : "OFF"} · Iterations: ${iterationCount}/${MAX_ITERATIONS} · ${prLabel}`,
 					"info",
 				);
+			} else if (trimmed.startsWith("pin")) {
+				const urlPart = trimmed.slice(3).trim();
+				const parsed = parsePrUrl(urlPart);
+				if (!parsed) {
+					ctx.ui.notify("Usage: /pr-iterate pin <github-pr-url>", "warning");
+				} else {
+					pinnedPr = { repo: parsed.repo, number: parsed.number };
+					const pr = getPrByNumber(parsed.repo, parsed.number);
+					showStatus(pr, ctx.ui);
+					ctx.ui.notify(`Pinned PR #${parsed.number}`, "info");
+				}
+			} else if (trimmed === "unpin") {
+				pinnedPr = null;
+				lastPr = undefined;
+				update(ctx.cwd, ctx.ui);
+				ctx.ui.notify("Unpinned — using branch detection", "info");
 			} else {
 				// Toggle
 				autoIterate = !autoIterate;
