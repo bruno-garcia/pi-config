@@ -124,14 +124,17 @@ export default function (pi: ExtensionAPI) {
         } else {
           mainCost += sessionCost;
           mainSessions++;
-          // Extract project name
+          // Extract project name from directory like --Users-bruno-git-pi-config--
           const dirName = path.basename(path.dirname(filePath));
-          let project = dirName
-            .replace(/^--/, "")
-            .replace(/--$/, "")
-            .replace(/^Users-[^-]+-Projects-/, "")
-            .replace(/^private-tmp-/, "tmp/");
-          if (!project || project.startsWith("Users-")) project = "other";
+          const segments = dirName.replace(/^--/, "").replace(/--$/, "").split("-");
+          // Skip leading path segments (e.g. Users, <username>, git/Projects/...)
+          // Find last meaningful segment(s) as the project name
+          let project = "other";
+          if (segments.length >= 3) {
+            // Skip "Users" and username, take the rest as the project path
+            const projectParts = segments.slice(2);
+            project = projectParts.join("-");
+          }
           byProject[project] = (byProject[project] ?? 0) + sessionCost;
         }
       };
