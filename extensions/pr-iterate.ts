@@ -282,182 +282,248 @@ const POLL_INTERVAL = 30_000;
 const MAX_ITERATIONS = 10;
 const DEBUG_LOG_PATH = "/tmp/pr-iterate-debug.log";
 
+const DEBUG_LOG_MAX_BYTES = 100_000; // 100KB
+
 function debugLog(msg: string) {
 	try {
 		const fs = require("node:fs");
+		// Rotate if too large
+		try {
+			const stat = fs.statSync(DEBUG_LOG_PATH);
+			if (stat.size > DEBUG_LOG_MAX_BYTES) {
+				// Keep last ~50KB
+				const content = fs.readFileSync(DEBUG_LOG_PATH, "utf-8");
+				fs.writeFileSync(DEBUG_LOG_PATH, content.slice(-50_000));
+			}
+		} catch {}
 		fs.appendFileSync(DEBUG_LOG_PATH, `[${new Date().toISOString()}] ${msg}\n`);
 	} catch {}
 }
 
 export default function (pi: ExtensionAPI) {
-	// ── Status bar state ──
-	let timer: ReturnType<typeof setInterval> | undefined;
-	let lastBranch: string | undefined;
-	let lastPr: PrInfo | undefined;
-	let cachedRepo: RepoInfo | undefined;
-	let pinnedPr: { repo: string; number: number } | null = null;
-	let latestCtx: ExtensionContext | null = null;
+	// ── Per-session state ──
+	interface SessionState {
+		lastBranch: string | undefined;
+		lastPr: PrInfo | undefined;
+		cachedRepo: RepoInfo | undefined;
+		pinnedPr: { repo: string; number: number } | null;
+		autoIterate: boolean;
+		iterationCount: number;
+		ctx: ExtensionContext;
+	}
 
-	// ── Iteration state ──
-	let autoIterate = true;
-	let iterationCount = 0;
+	const sessions = new Map<string, SessionState>();
+	let timer: ReturnType<typeof setInterval> | undefined;
+
+	function getSessionId(ctx: ExtensionContext): string {
+		try {
+			return ctx.sessionManager.getSessionId() ?? ctx.cwd;
+		} catch {
+			return ctx.cwd;
+		}
+	}
+
+	function getOrCreate(ctx: ExtensionContext): SessionState {
+		const id = getSessionId(ctx);
+		let s = sessions.get(id);
+		if (!s) {
+			s = {
+				lastBranch: undefined,
+				lastPr: undefined,
+				cachedRepo: undefined,
+				pinnedPr: null,
+				autoIterate: true,
+				iterationCount: 0,
+				ctx,
+			};
+			sessions.set(id, s);
+		} else {
+			s.ctx = ctx; // always keep ctx fresh
+		}
+		return s;
+	}
 
 	// ── Status bar ──────────────────────────────────────────────────────────
 
-	function iterateLabel(): string | undefined {
-		if (!autoIterate) return undefined;
-		if (iterationCount === 0) return "🔄 auto";
-		return `🔄 ${iterationCount}/${MAX_ITERATIONS}`;
+	function iterateLabel(s: SessionState): string | undefined {
+		if (!s.autoIterate) return undefined;
+		if (s.iterationCount === 0) return "🔄 auto";
+		return `🔄 ${s.iterationCount}/${MAX_ITERATIONS}`;
 	}
 
-	function showStatus(
-		pr: PrInfo | undefined,
-		ui: { setStatus: (key: string, value: string | undefined) => void },
-	) {
-		// Only update lastPr when we get a definitive answer (found or branch changed).
-		// undefined from a transient failure should not wipe the status bar.
-		if (pr !== undefined) lastPr = pr;
-		ui.setStatus(STATUS_KEY, lastPr ? formatStatus(lastPr, iterateLabel()) : undefined);
+	function showStatus(s: SessionState, pr: PrInfo | undefined) {
+		if (pr !== undefined) s.lastPr = pr;
+		s.ctx.ui.setStatus(STATUS_KEY, s.lastPr ? formatStatus(s.lastPr, iterateLabel(s)) : undefined);
 	}
 
-	function refreshStatus() {
-		if (!latestCtx) return;
-		// Re-render with current iterate state without re-fetching PR
-		if (lastPr) {
-			latestCtx.ui.setStatus(STATUS_KEY, formatStatus(lastPr, iterateLabel()));
+	function refreshStatus(s: SessionState) {
+		if (s.lastPr) {
+			s.ctx.ui.setStatus(STATUS_KEY, formatStatus(s.lastPr, iterateLabel(s)));
 		}
+	}
+
+	function clearStatus(s: SessionState) {
+		s.lastPr = undefined;
+		s.ctx.ui.setStatus(STATUS_KEY, undefined);
 	}
 
 	function ensureTimer() {
 		if (timer) return;
 		timer = setInterval(() => {
-			if (latestCtx) update(latestCtx.cwd, latestCtx.ui);
+			for (const s of sessions.values()) {
+				update(s);
+			}
 		}, POLL_INTERVAL);
 	}
 
-	function clearStatus(ui: { setStatus: (key: string, value: string | undefined) => void }) {
-		lastPr = undefined;
-		ui.setStatus(STATUS_KEY, undefined);
-	}
+	function update(s: SessionState) {
+		const cwd = s.ctx.cwd;
+		debugLog(`update: cwd=${cwd} lastBranch=${s.lastBranch} pinnedPr=${JSON.stringify(s.pinnedPr)} lastPr=#${s.lastPr?.number ?? "none"}`);
 
-	function update(cwd: string, ui: { setStatus: (key: string, value: string | undefined) => void }) {
-		debugLog(`update: cwd=${cwd} lastBranch=${lastBranch} pinnedPr=${JSON.stringify(pinnedPr)} lastPr=#${lastPr?.number ?? "none"}`);
-		// If a PR is pinned by URL, use that
-		if (pinnedPr) {
-			const pr = getPrByNumber(pinnedPr.repo, pinnedPr.number);
-			showStatus(pr, ui); // transient failure keeps last known status
+		if (s.pinnedPr) {
+			const pr = getPrByNumber(s.pinnedPr.repo, s.pinnedPr.number);
+			showStatus(s, pr);
 
-			// If the branch now has its own open PR, drop the pin
-			if (pr) {
-				const branch = getBranch(cwd);
-				if (branch && branch !== "HEAD" && branch !== lastBranch) lastBranch = branch;
-				if (branch && branch !== "HEAD") {
-					cachedRepo = getRepoInfo(cwd);
-					const branchPr = getPrForBranch(cwd, cachedRepo);
-					if (branchPr && branchPr.state === "OPEN") {
-						pinnedPr = null;
-						showStatus(branchPr, ui);
-					}
+			const branch = getBranch(cwd);
+			if (branch && branch !== "HEAD") {
+				if (!s.cachedRepo) s.cachedRepo = getRepoInfo(cwd);
+				const branchPr = getPrForBranch(cwd, s.cachedRepo);
+				if (branchPr && branchPr.state === "OPEN") {
+					s.pinnedPr = null;
+					showStatus(s, branchPr);
 				}
 			}
 			return;
 		}
 
 		const branch = getBranch(cwd);
-		if (branch !== lastBranch) {
-			lastBranch = branch;
-			// Branch actually changed — clear stale PR and repo cache
-			clearStatus(ui);
-			cachedRepo = undefined;
+		if (branch !== s.lastBranch) {
+			s.lastBranch = branch;
+			clearStatus(s);
+			s.cachedRepo = undefined;
 		}
 		if (!branch || branch === "HEAD") {
 			debugLog(`update: no usable branch (${branch}), clearing`);
-			clearStatus(ui);
+			clearStatus(s);
 			return;
 		}
 		debugLog(`update: branch=${branch}`);
 
-		if (!cachedRepo) cachedRepo = getRepoInfo(cwd);
-		showStatus(getPrForBranch(cwd, cachedRepo), ui);
-	}
-
-	function tryPinFromUrl(text: string, ctx: ExtensionContext) {
-		const parsed = parsePrUrl(text);
-		if (!parsed) return;
-		if (pinnedPr?.repo === parsed.repo && pinnedPr?.number === parsed.number) return;
-		// Don't hijack when branch has an active open PR
-		if (lastPr && lastPr.state === "OPEN") return;
-		pinnedPr = { repo: parsed.repo, number: parsed.number };
-		const pr = getPrByNumber(parsed.repo, parsed.number);
-		showStatus(pr, ctx.ui);
+		if (!s.cachedRepo) s.cachedRepo = getRepoInfo(cwd);
+		showStatus(s, getPrForBranch(cwd, s.cachedRepo));
 	}
 
 	// ── Iteration logic ─────────────────────────────────────────────────────
 
-	function triggerIteration(ctx: ExtensionContext) {
-		if (!autoIterate) return;
-		if (iterationCount >= MAX_ITERATIONS) {
-			ctx.ui.notify(`PR iterate: max iterations (${MAX_ITERATIONS}) reached — disabling`, "warning");
-			autoIterate = false;
-			refreshStatus();
+	function triggerIteration(s: SessionState) {
+		if (!s.autoIterate) return;
+		if (s.iterationCount >= MAX_ITERATIONS) {
+			s.ctx.ui.notify(`PR iterate: max iterations (${MAX_ITERATIONS}) reached — disabling`, "warning");
+			s.autoIterate = false;
+			refreshStatus(s);
 			return;
 		}
-		iterationCount++;
-		refreshStatus();
-		const msg = buildIterationMessage(iterationCount, MAX_ITERATIONS);
+		s.iterationCount++;
+		refreshStatus(s);
+		const msg = buildIterationMessage(s.iterationCount, MAX_ITERATIONS);
 		pi.sendUserMessage(msg, { deliverAs: "followUp" });
 	}
 
 	const PUSH_RE = /\bgit\s+push\b/;
 	const PR_CREATE_RE = /\bgh\s+pr\s+create\b/;
 
+	/** Extract text from tool result content blocks */
+	function getResultText(event: { content?: unknown }): string {
+		const content = event.content;
+		if (!Array.isArray(content)) return "";
+		return content
+			.filter((c: any) => c?.type === "text" && typeof c.text === "string")
+			.map((c: any) => c.text)
+			.join("\n");
+	}
+
+	/** Try to extract the working directory from a `cd <dir> && ...` command */
+	function extractCdDir(cmd: string): string | undefined {
+		const m = cmd.match(/\bcd\s+(~\/[^\s;&|]+|\/[^\s;&|]+)\s*(?:&&|;)/);
+		if (!m) return undefined;
+		return m[1].replace(/^~/, process.env.HOME || "~");
+	}
+
 	// ── Events ──────────────────────────────────────────────────────────────
 
-	// Detect agent pushes and PR creation
 	pi.on("tool_result", async (event, ctx) => {
 		if (event.toolName !== "bash") return;
 		const cmd = String(((event as Record<string, unknown>).input as any)?.command ?? "");
 		if (!PUSH_RE.test(cmd) && !PR_CREATE_RE.test(cmd)) return;
 		if (event.isError) return;
 
-		latestCtx = ctx;
-		// Brief delay to let the agent finish its current thought
-		setTimeout(() => triggerIteration(ctx), 500);
+		const s = getOrCreate(ctx);
+
+		// Auto-pin PR from gh pr create output or git push in a different repo
+		if (!s.pinnedPr) {
+			const output = getResultText(event);
+			const allText = cmd + "\n" + output;
+			const prMatch = allText.match(PR_URL_RE);
+			if (prMatch) {
+				const repo = prMatch[1];
+				const number = parseInt(prMatch[2], 10);
+				debugLog(`tool_result: auto-pinning PR ${repo}#${number} from command output`);
+				s.pinnedPr = { repo, number };
+				const pr = getPrByNumber(repo, number);
+				showStatus(s, pr);
+			} else if (PUSH_RE.test(cmd)) {
+				// For git push without a PR URL, try the cd directory
+				const dir = extractCdDir(cmd);
+				if (dir && dir !== ctx.cwd) {
+					debugLog(`tool_result: trying PR lookup from cd dir: ${dir}`);
+					const repo = getRepoInfo(dir);
+					const pr = repo ? getPrForBranch(dir, repo) : undefined;
+					if (pr && pr.url) {
+						const parsed = parsePrUrl(pr.url);
+						if (parsed) {
+							debugLog(`tool_result: auto-pinning PR ${parsed.repo}#${parsed.number} from cd dir`);
+							s.pinnedPr = parsed;
+							showStatus(s, pr);
+						}
+					}
+				}
+			}
+		} else {
+			// Already pinned — refresh status
+			const pr = getPrByNumber(s.pinnedPr.repo, s.pinnedPr.number);
+			showStatus(s, pr);
+		}
+
+		setTimeout(() => triggerIteration(s), 500);
 	});
 
-	// Update context from user input (no auto-pinning — use /pr-iterate pin <url>)
 	pi.on("input", async (event, ctx) => {
 		if (event.source === "extension") return { action: "continue" as const };
-		latestCtx = ctx;
+		getOrCreate(ctx);
 		return { action: "continue" as const };
 	});
 
 	pi.on("before_agent_start", async (_event, ctx) => {
-		latestCtx = ctx;
+		getOrCreate(ctx);
 	});
 
-	// Start polling
 	pi.on("session_start", async (_event, ctx) => {
-		latestCtx = ctx;
-		update(ctx.cwd, ctx.ui);
+		const s = getOrCreate(ctx);
+		update(s);
 		ensureTimer();
 	});
 
-	// Reset on session switch — also ensure timer is running
 	pi.on("session_switch", async (_event, ctx) => {
-		lastBranch = undefined;
-		lastPr = undefined;
-		cachedRepo = undefined;
-		pinnedPr = null;
-		iterationCount = 0;
-		latestCtx = ctx;
-		update(ctx.cwd, ctx.ui);
+		const s = getOrCreate(ctx);
+		update(s);
 		ensureTimer();
 	});
 
 	// Cleanup
-	pi.on("session_shutdown", async () => {
-		if (timer) {
+	pi.on("session_shutdown", async (_event, ctx) => {
+		const id = getSessionId(ctx);
+		sessions.delete(id);
+		if (sessions.size === 0 && timer) {
 			clearInterval(timer);
 			timer = undefined;
 		}
@@ -481,31 +547,31 @@ export default function (pi: ExtensionAPI) {
 			return filtered.length > 0 ? filtered : null;
 		},
 		handler: async (args, ctx) => {
+			const s = getOrCreate(ctx);
 			const trimmed = args.trim().toLowerCase();
 
 			if (trimmed === "on") {
-				autoIterate = true;
-				iterationCount = 0;
-				refreshStatus();
+				s.autoIterate = true;
+				s.iterationCount = 0;
+				refreshStatus(s);
 				ctx.ui.notify("PR auto-iterate: ON", "info");
 			} else if (trimmed === "off") {
-				autoIterate = false;
-				refreshStatus();
+				s.autoIterate = false;
+				refreshStatus(s);
 				ctx.ui.notify("PR auto-iterate: OFF", "info");
 			} else if (trimmed === "run") {
-				// Manual trigger — temporarily enable if off
-				const wasEnabled = autoIterate;
-				autoIterate = true;
-				triggerIteration(ctx);
-				if (!wasEnabled) autoIterate = false;
+				const wasEnabled = s.autoIterate;
+				s.autoIterate = true;
+				triggerIteration(s);
+				if (!wasEnabled) s.autoIterate = false;
 			} else if (trimmed === "reset") {
-				iterationCount = 0;
-				refreshStatus();
+				s.iterationCount = 0;
+				refreshStatus(s);
 				ctx.ui.notify("PR iterate: counter reset to 0", "info");
 			} else if (trimmed === "status") {
-				const prLabel = lastPr ? `PR #${lastPr.number}` : "no PR detected";
+				const prLabel = s.lastPr ? `PR #${s.lastPr.number}` : "no PR detected";
 				ctx.ui.notify(
-					`Auto-iterate: ${autoIterate ? "ON" : "OFF"} · Iterations: ${iterationCount}/${MAX_ITERATIONS} · ${prLabel}`,
+					`Auto-iterate: ${s.autoIterate ? "ON" : "OFF"} · Iterations: ${s.iterationCount}/${MAX_ITERATIONS} · ${prLabel}`,
 					"info",
 				);
 			} else if (trimmed.startsWith("pin")) {
@@ -514,22 +580,22 @@ export default function (pi: ExtensionAPI) {
 				if (!parsed) {
 					ctx.ui.notify("Usage: /pr-iterate pin <github-pr-url>", "warning");
 				} else {
-					pinnedPr = { repo: parsed.repo, number: parsed.number };
+					s.pinnedPr = { repo: parsed.repo, number: parsed.number };
 					const pr = getPrByNumber(parsed.repo, parsed.number);
-					showStatus(pr, ctx.ui);
+					showStatus(s, pr);
 					ctx.ui.notify(`Pinned PR #${parsed.number}`, "info");
 				}
 			} else if (trimmed === "unpin") {
-				pinnedPr = null;
-				lastPr = undefined;
-				update(ctx.cwd, ctx.ui);
+				s.pinnedPr = null;
+				s.lastPr = undefined;
+				update(s);
 				ctx.ui.notify("Unpinned — using branch detection", "info");
 			} else {
 				// Toggle
-				autoIterate = !autoIterate;
-				if (autoIterate) iterationCount = 0;
-				refreshStatus();
-				ctx.ui.notify(`PR auto-iterate: ${autoIterate ? "ON" : "OFF"}`, "info");
+				s.autoIterate = !s.autoIterate;
+				if (s.autoIterate) s.iterationCount = 0;
+				refreshStatus(s);
+				ctx.ui.notify(`PR auto-iterate: ${s.autoIterate ? "ON" : "OFF"}`, "info");
 			}
 		},
 	});
