@@ -417,6 +417,11 @@ export default function (pi: ExtensionAPI) {
 
 	function triggerIteration(s: SessionState) {
 		if (!s.autoIterate) return;
+		// Don't iterate if there's no PR (e.g., direct push to main)
+		if (!s.lastPr && !s.pinnedPr) {
+			debugLog("triggerIteration: skipped — no PR detected or pinned");
+			return;
+		}
 		if (s.iterationCount >= MAX_ITERATIONS) {
 			s.ctx.ui.notify(`PR iterate: max iterations (${MAX_ITERATIONS}) reached — disabling`, "warning");
 			s.autoIterate = false;
