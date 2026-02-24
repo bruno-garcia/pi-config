@@ -60,11 +60,13 @@ For every review comment (from bots or humans), evaluate it:
 
 1. **Read the comment** carefully, including any suggested code changes.
 2. **Read the relevant source file(s)** at the lines being discussed to understand the full context.
-3. **Determine validity**:
-   - Is the feedback correct and actionable?
+3. **Determine validity** — a comment is only valid if it identifies something that needs our attention and leads to a change that improves the PR. Ask:
+   - Does it point to a **real bug, logic error, missing edge case, or security issue**?
+   - Does it suggest a **concrete improvement** (better naming, missing validation, performance fix)?
    - Is it a false positive from a bot?
    - Is it a style preference vs a real issue?
    - Is it already addressed or outdated?
+   - **Is it just noise?** Praise ("great job!"), restatements of what the code already does, or vague "looks good" comments with no actionable feedback are **not valid** — they waste attention and clutter the review. Treat them the same as invalid comments (thumbs-down + resolve).
 
 ## Step 4: Act on each comment
 
@@ -86,7 +88,10 @@ For **each** comment, do ALL of the following:
    gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "THREAD_NODE_ID"}) { thread { isResolved } } }'
    ```
 
-### B. If the comment is not valid or not actionable:
+### B. If the comment is not valid, not actionable, or just noise:
+
+This includes: false positives, already-addressed issues, praise-only comments ("great job", "this looks good"), restatements of what the code does without identifying a problem, and vague feedback with no concrete suggestion. These add no value — treat them all the same way.
+
 1. **React with thumbs-down** (-1):
    ```bash
    gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions -f content='-1'
