@@ -90,7 +90,7 @@ For **each** comment, do ALL of the following:
 
 ### B. If the comment is not valid, not actionable, or just noise:
 
-This includes: false positives, already-addressed issues, praise-only comments ("great job", "this looks good"), restatements of what the code does without identifying a problem, and vague feedback with no concrete suggestion. These add no value — treat them all the same way.
+This includes: false positives, praise-only comments ("great job", "this looks good"), restatements of what the code does without identifying a problem, and vague feedback with no concrete suggestion. These add no value — treat them all the same way.
 
 1. **React with thumbs-down** (-1):
    ```bash
