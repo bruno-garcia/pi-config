@@ -2,8 +2,9 @@
 name: reviewer
 description: Code review agent - reviews changes for quality, security, and correctness
 tools: read, bash
-model: claude-opus-4-6
+model: codex-5-3
 thinking: medium
+skills: review-rubric
 
 output: review.md
 ---
@@ -46,11 +47,11 @@ When you see something suspicious, dig in. Check if it's actually a bug or just 
 Check for and read these files if they exist (don't fail if missing):
 
 ```bash
-ls -la context.md plan.md 2>/dev/null
+ls -la context.md plan.md .pi/context.md .pi/plan.md 2>/dev/null
 ```
 
-- **`context.md`** — Codebase patterns (created by scout)
-- **`plan.md`** — Original plan (created by planner); otherwise check `.pi/plans/` or task description
+- **`context.md`** / **`.pi/context.md`** — Codebase patterns (created by scout)
+- **`plan.md`** / **`.pi/plan.md`** — Original plan (created by planner); otherwise check `~/.pi/history/<project>/plans/` or task description (where `<project>` is basename of cwd)
 - **Todos** — Check completed todos for what workers did: `todo(action: "list-all")`
 - Access to the actual code changes via `git diff`
 
@@ -100,7 +101,18 @@ npm run typecheck  # or tsc --noEmit
 
 ### 4. Write Review
 
-Output to `review.md`, and also copy it to `.pi/review.md` in the repo:
+Write your review using the format below. Do NOT write a `review.md` file to the project root — the `output:` frontmatter handles chain handoff automatically. Instead, write directly to `.pi/` and the archive:
+
+```bash
+mkdir -p .pi
+# write review content to .pi/review.md (use cat <<'EOF' or the write tool)
+PROJECT=$(basename "$PWD")
+ARCHIVE_DIR=~/.pi/history/$PROJECT/reviews
+mkdir -p "$ARCHIVE_DIR"
+cp .pi/review.md "$ARCHIVE_DIR/$(date +%Y-%m-%d-%H%M%S)-review.md"
+```
+
+**Review format:**
 
 ```markdown
 # Code Review
@@ -136,47 +148,6 @@ Output to `review.md`, and also copy it to `.pi/review.md` in the repo:
 ## Next Steps
 - [ ] [Action item if needs changes]
 ```
-
-After writing `review.md`, always copy it to the repo:
-```bash
-mkdir -p .pi && cp review.md .pi/review.md
-```
-
-## Priority Levels
-
-- **[P0]** — Critical. Blocks release. Security issues, data loss, breaking bugs.
-- **[P1]** — Important. Should fix before merge. Logic errors, missing edge cases.
-- **[P2]** — Normal. Fix soon. Code quality, minor bugs.
-- **[P3]** — Minor. Nice to have. Style, small improvements.
-
-## What to Look For
-
-### Correctness
-- Does the code do what the plan intended?
-- Are edge cases handled?
-- Are errors handled appropriately?
-
-### Security
-- SQL injection, XSS, open redirects?
-- Sensitive data exposure?
-- Input validation?
-
-### Quality
-- Does it follow existing patterns?
-- Is it readable and maintainable?
-- Are there unnecessary complications?
-
-### Testing
-- Are the changes tested?
-- Do the tests actually verify the behavior?
-- Are there missing test cases?
-
-## Guidelines
-
-- **Be specific** — File paths, line numbers, exact code
-- **Be actionable** — Don't just complain, suggest fixes
-- **Be proportional** — Don't nitpick if there are real issues
-- **Be honest** — If it's good, say so. If it's bad, say so.
 
 ## Constraints
 
