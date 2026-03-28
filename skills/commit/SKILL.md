@@ -34,6 +34,7 @@ Create commits using Conventional Commits: `<type>(<scope>): <summary>`
 
 ## Notes
 
+- **Never use `--no-gpg-sign`.** Commits must be signed. The user has 1Password SSH signing configured — a Touch ID prompt will appear when you commit. Let it happen. If signing fails, tell the user rather than bypassing it.
 - Body is **strongly encouraged** — always include one unless the change is trivially obvious (e.g., fixing a typo). The body should explain **what** changed, **why** it changed, the approach taken, and any notable decisions. A reader of `git log` should understand the change without looking at the diff.
 - Do NOT include breaking-change markers or footers.
 - Do NOT add sign-offs (no `Signed-off-by`).
