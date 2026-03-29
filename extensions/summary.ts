@@ -130,11 +130,12 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 
-			const apiKey = await ctx.modelRegistry.getApiKey(model);
-			if (!apiKey) {
+			const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
+			if (!auth.ok) {
 				if (ctx.hasUI) ctx.ui.notify("No API key available", "error");
 				return;
 			}
+			const { apiKey, headers } = auth;
 
 			// Fetch git status and LLM summary in parallel
 			const [gitStatus, response] = await Promise.all([
@@ -163,7 +164,7 @@ export default function (pi: ExtensionAPI) {
 							},
 						],
 					},
-					{ apiKey }
+					{ apiKey, headers }
 				),
 			]);
 
