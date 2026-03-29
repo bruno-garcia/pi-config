@@ -51,6 +51,8 @@ pi install git:github.com/bruno-garcia/pi-config
 
 ## Setup Options
 
+> **Nix users**: If `~/.pi/agent/` is managed by nix-darwin/home-manager, `pi install` won't work (read-only nix store). Instead, fetch packages with `pkgs.fetchFromGitHub` and symlink them into `~/.pi/agent/packages/`, then list them in the nix-generated `settings.json`. See [nix-config](https://github.com/bruno-garcia/nix-config) `modules/home/development.nix` for a working example.
+
 ### Option A: Package Installation (Recommended)
 
 Install as a pi package — best for using the config without modifying it.
