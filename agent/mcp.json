@@ -17,6 +17,14 @@
       "command": "npx",
       "args": ["-y", "mcp-remote", "https://mcp.vercel.com"],
       "lifecycle": "lazy"
+    },
+    "linear": {
+      "command": "npx",
+      "args": ["-y", "linear-mcp"],
+      "lifecycle": "lazy",
+      "env": {
+        "LINEAR_ACCESS_TOKEN": "${LINEAR_ACCESS_TOKEN}"
+      }
     }
   }
 }
